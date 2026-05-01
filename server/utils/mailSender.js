@@ -17,6 +17,7 @@ const mailSender = async (email, title, body) => {
         user: process.env.MAIL_USER,
         pass: process.env.MAIL_PASS,
       },
+      family: 4,
       connectionTimeout: 30000,
       greetingTimeout: 30000,
       socketTimeout: 30000,
