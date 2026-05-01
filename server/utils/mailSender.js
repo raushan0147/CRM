@@ -3,6 +3,42 @@ const dns = require("dns").promises;
 
 const mailSender = async (email, title, body) => {
   try {
+    if (process.env.BREVO_API_KEY) {
+      const fromEmail = process.env.MAIL_FROM_EMAIL || process.env.MAIL_USER;
+      const fromName = process.env.MAIL_FROM_NAME || "Lead Management";
+
+      if (!fromEmail) {
+        throw new Error("Missing email configuration: MAIL_FROM_EMAIL or MAIL_USER must be set.");
+      }
+
+      const response = await fetch("https://api.brevo.com/v3/smtp/email", {
+        method: "POST",
+        headers: {
+          "accept": "application/json",
+          "api-key": process.env.BREVO_API_KEY,
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          sender: {
+            name: fromName,
+            email: fromEmail,
+          },
+          to: [{ email }],
+          subject: title,
+          htmlContent: body,
+        }),
+      });
+
+      const result = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(result.message || `Brevo API failed with status ${response.status}`);
+      }
+
+      console.log("Mail sent successfully to:", email);
+      return result;
+    }
+
     // Validate required environment variables
     if (!process.env.MAIL_USER || !process.env.MAIL_PASS) {
       throw new Error(
