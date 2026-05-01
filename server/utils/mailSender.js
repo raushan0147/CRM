@@ -1,4 +1,5 @@
 const nodemailer = require("nodemailer");
+const dns = require("dns").promises;
 
 const mailSender = async (email, title, body) => {
   try {
@@ -9,15 +10,29 @@ const mailSender = async (email, title, body) => {
       );
     }
 
+    const mailHost = process.env.MAIL_HOST || "smtp.gmail.com";
+    let smtpHost = mailHost;
+
+    try {
+      const [ipv4Address] = await dns.resolve4(mailHost);
+      if (ipv4Address) {
+        smtpHost = ipv4Address;
+      }
+    } catch (error) {
+      console.log(`IPv4 SMTP lookup failed for ${mailHost}:`, error.message || error);
+    }
+
     const transporter = nodemailer.createTransport({
-      host: process.env.MAIL_HOST || "smtp.gmail.com",
+      host: smtpHost,
       port: Number(process.env.MAIL_PORT || 465),
       secure: (process.env.MAIL_SECURE || "true") === "true",
       auth: {
         user: process.env.MAIL_USER,
         pass: process.env.MAIL_PASS,
       },
-      family: 4,
+      tls: {
+        servername: mailHost,
+      },
       connectionTimeout: 30000,
       greetingTimeout: 30000,
       socketTimeout: 30000,
